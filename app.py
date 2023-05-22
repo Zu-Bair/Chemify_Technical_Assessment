@@ -99,3 +99,73 @@ def delete_user(user_id):
     db.session.commit()
 
     return jsonify({'message': 'User deleted successfully'})
+
+
+# Route to get tasks of a user
+@app.route('/users/<user_id>/tasks', methods=['GET'])
+def get_user_tasks(user_id):
+    user = User.query.get(user_id)
+    if not user:
+        return jsonify({'error': 'User not found'}), 404
+
+    tasks = Task.query.filter_by(user_id=user_id).all()
+
+    user_tasks = []
+    for task in tasks:
+        user_tasks.append({
+            'id': task.id,
+            'title': task.title,
+            'description': task.description,
+            'status': task.status,
+            'user_id': task.user_id
+        })
+
+    return jsonify({'tasks': user_tasks})
+
+
+# Route to create a task for a user
+@app.route('/users/<user_id>/tasks', methods=['POST'])
+def create_user_task(user_id):
+    user = User.query.get(user_id)
+    if not user:
+        return jsonify({'error': 'User not found'}), 404
+
+    data = request.get_json()
+    title = data.get('title')
+    description = data.get('description')
+    status = data.get('status', 'Pending')
+
+    task = Task(title=title, description=description, status=status, user_id=user_id)
+    db.session.add(task)
+    db.session.commit()
+
+    return jsonify({'message': 'Task created successfully'}), 201
+
+
+# Route to delete a task of a user
+@app.route('/users/<user_id>/tasks/<task_id>', methods=['DELETE'])
+def delete_user_task(user_id, task_id):
+    user = User.query.get(user_id)
+    if not user:
+        return jsonify({'error': 'User not found'}), 404
+
+    task = Task.query.filter_by(id=task_id, user_id=user_id).first()
+    if not task:
+        return jsonify({'error': 'Task not found'}), 404
+
+    # Create a TaskHistory record
+    task_history = TaskHistory(
+        task_id=task.id,
+        title=task.title,
+        description=task.description,
+        status=task.status,
+        user_id=task.user_id
+    )
+    db.session.add(task_history)
+
+    # Delete the task from the Task table
+    db.session.delete(task)
+    db.session.commit()
+
+    return jsonify({'message': 'Task deleted successfully'})
+
