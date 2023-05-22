@@ -169,3 +169,31 @@ def delete_user_task(user_id, task_id):
 
     return jsonify({'message': 'Task deleted successfully'})
 
+
+# Route to get task history for a user
+@app.route('/users/<user_id>/task-history', methods=['GET'])
+def get_user_task_history(user_id):
+
+    user = User.query.get(user_id)
+    if not user:
+        return jsonify({'error': 'User not found'}), 404
+
+    task_history = TaskHistory.query.filter_by(user_id=user_id).all()
+    task_history_data = []
+    for history in task_history:
+        task_history_data.append({
+            'id': history.id,
+            'task_id': history.task_id,
+            'title': history.title,
+            'description': history.description,
+            'status': history.status,
+            'deleted_at': history.deleted_at,
+        })
+
+    return jsonify(task_history_data)
+
+
+if __name__ == '__main__':
+    app.run(debug=True)
+
+
